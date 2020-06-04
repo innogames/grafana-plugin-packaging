@@ -1,0 +1,22 @@
+#!/bin/sh
+
+set -e
+
+[ -f /etc/default/grafana-server  ] && . /etc/default/grafana-server
+
+if [ "$RESTART_ON_UPGRADE" = "true"  ]; then
+  echo "Restarting grafana-server service..."
+
+  if command -v systemctl >/dev/null; then
+    systemctl daemon-reload
+    systemctl restart grafana-server || true
+  elif [ -x /etc/init.d/grafana-server ]; then
+    if command -v invoke-rc.d >/dev/null; then
+      invoke-rc.d grafana-server restart || true
+    else
+      /etc/init.d/grafana-server restart || true
+    fi
+  fi
+  echo " OK"
+
+fi
