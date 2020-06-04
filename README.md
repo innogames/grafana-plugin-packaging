@@ -9,6 +9,8 @@ To build package run it as `make plugin_id:version`, it will:
 - Build the deb and rpm packages
 - If `$RESTART_ON_UPGRADE` environment variable is set in `/etc/default/grafana-server`, then server will be restarted during package install/upgrade/remove
 
+For additional info run `make help`
+
 ## Requirements
 
 - Docker

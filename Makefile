@@ -11,15 +11,19 @@ AVAILABLE_PLUGINS = $(shell docker run --rm --entrypoint grafana-cli grafana/gra
 CONTAINER = grafana-plugin-builder
 THIS_FILE = $(lastword $(MAKEFILE_LIST))
 GRAFANA_CLI_ARGS = 
+PACKAGES = deb rmp
 
 .PHONY: all help
 
 all: help
 
 help:
-	@echo 'Build the package with requested name:version'
+	@echo 'Build the package with requested name:version: `make $$name:$$version`'
+	@echo ' To get list of available plugins with the latest versions run `make list`'
+	@echo ' To get list of available versions for secific plugin run `make $$name`'
+	@echo ' To build only deb or rpm package pass PACKAGES=`type` parameter'
+	@echo ' To pass additional options to `grafana-cli` use `GRAFANA_CLI_ARGS="options"`'
 	@echo 'Dependencies: docker, fpm (package builder)'
-	@echo 'To get list of available plugins with the latest versions run `make list`'
 
 list:
 	@echo Available: $(AVAILABLE_PLUGINS) | tr ' ' '\n'
@@ -32,14 +36,17 @@ clean:
 %: VERSION = $(word 2,$(subst :, ,$@))
 %: PACKAGE_NAME = $(PACKAGE_PREFIX)$(ID)
 %:
-	@if [ -z '$(VERSION)' ]; then echo 'Target does not contain VERSION part. See `make help`'; exit 1; fi
+	@if [ -z '$(VERSION)' ]; then echo 'Target does not contain VERSION part. Trying to show available versions for requested plugin'; \
+	  docker run --rm --entrypoint grafana-cli grafana/grafana $(GRAFANA_CLI_ARGS) plugins list-versions '$(ID)'; \
+	  exit 1; \
+	fi
 	-docker rm $(CONTAINER)
 	docker run --name $(CONTAINER) --entrypoint grafana-cli grafana/grafana $(GRAFANA_CLI_ARGS) plugins install '$(ID)' '$(VERSION)'
 	mkdir $@
 	docker export $(CONTAINER) | tar x -C $@ 'var/lib/grafana/plugins/$(ID)'
 	docker rm $(CONTAINER)
-	$(MAKE) -f $(THIS_FILE) PLUGIN_ID=$(ID) PACKAGE_NAME=$(PACKAGE_NAME) VERSION=$(VERSION) '$(PACKAGE_NAME)_$(VERSION)_amd64.deb'
-	$(MAKE) -f $(THIS_FILE) PLUGIN_ID=$(ID) PACKAGE_NAME=$(PACKAGE_NAME) VERSION=$(VERSION) '$(PACKAGE_NAME)-$(VERSION)-1.x86_64.rpm'
+	@echo $(PACKAGES) | grep -q deb && $(MAKE) -f $(THIS_FILE) PLUGIN_ID=$(ID) PACKAGE_NAME=$(PACKAGE_NAME) VERSION=$(VERSION) '$(PACKAGE_NAME)_$(VERSION)_amd64.deb' || true
+	@echo $(PACKAGES) | grep -q rpm && $(MAKE) -f $(THIS_FILE) PLUGIN_ID=$(ID) PACKAGE_NAME=$(PACKAGE_NAME) VERSION=$(VERSION) '$(PACKAGE_NAME)-$(VERSION)-1.x86_64.rpm' || true
 
 export DESC
 %.deb %.rpm: TYPE = $(subst .,,$(suffix $@))
