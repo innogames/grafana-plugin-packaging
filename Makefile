@@ -11,6 +11,7 @@ AVAILABLE_PLUGINS = $(shell docker run --rm --entrypoint grafana-cli grafana/gra
 CONTAINER = grafana-plugin-builder
 THIS_FILE = $(lastword $(MAKEFILE_LIST))
 GRAFANA_CLI_ARGS = 
+GF_PATHS_PLUGINS = /var/lib/grafana/plugins
 PACKAGES = deb rmp
 
 .PHONY: all help
@@ -22,6 +23,7 @@ help:
 	@echo ' To get list of available plugins with the latest versions run `make list`'
 	@echo ' To get list of available versions for secific plugin run `make $$name`'
 	@echo ' To build only deb or rpm package pass PACKAGES=`type` parameter'
+	@echo ' To use non-default plugins directory use `GF_PATHS_PLUGINS=/what/ever/you/want`'
 	@echo ' To pass additional options to `grafana-cli` use `GRAFANA_CLI_ARGS="options"`'
 	@echo 'Dependencies: docker, fpm (package builder)'
 
@@ -42,8 +44,8 @@ clean:
 	fi
 	-docker rm $(CONTAINER)
 	docker run --name $(CONTAINER) --entrypoint grafana-cli grafana/grafana $(GRAFANA_CLI_ARGS) plugins install '$(ID)' '$(VERSION)'
-	mkdir $@
-	docker export $(CONTAINER) | tar x -C $@ 'var/lib/grafana/plugins/$(ID)'
+	mkdir -p $@/$(GF_PATHS_PLUGINS)
+	docker cp '$(CONTAINER):/var/lib/grafana/plugins/$(ID)' './$@/$(GF_PATHS_PLUGINS)'
 	docker rm $(CONTAINER)
 	@echo $(PACKAGES) | grep -q deb && $(MAKE) -f $(THIS_FILE) PLUGIN_ID=$(ID) PACKAGE_NAME=$(PACKAGE_NAME) VERSION=$(VERSION) '$(PACKAGE_NAME)_$(VERSION)_amd64.deb' || true
 	@echo $(PACKAGES) | grep -q rpm && $(MAKE) -f $(THIS_FILE) PLUGIN_ID=$(ID) PACKAGE_NAME=$(PACKAGE_NAME) VERSION=$(VERSION) '$(PACKAGE_NAME)-$(VERSION)-1.x86_64.rpm' || true
