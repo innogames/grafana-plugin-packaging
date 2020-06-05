@@ -1,4 +1,4 @@
-NAME = grafana-plugin-package
+NAME = grafana-plugin-packaging
 VENDOR = "System Administration <it@innogames.com>"
 URL = https://github.com/innogames/$(NAME)
 PACKAGE_PREFIX = grafana-plugin-
