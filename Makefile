@@ -12,7 +12,7 @@ CONTAINER = grafana-plugin-builder
 THIS_FILE = $(lastword $(MAKEFILE_LIST))
 GRAFANA_CLI_ARGS = 
 GF_PATHS_PLUGINS = /var/lib/grafana/plugins
-PACKAGES = deb rmp
+PACKAGES = deb rpm
 
 .PHONY: all help
 
